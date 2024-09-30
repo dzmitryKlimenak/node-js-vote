@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voting System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        .option {
+            margin: 10px;
+            padding: 10px;
+            background-color: lightgray;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+<h1>Voting System</h1>
+<div id="options"></div>
+<h2>Current Statistics:</h2>
+<div id="stats"></div>
+
+<script>
+    async function loadOptions() {
+        const response = await fetch('/variants');
+        const options = await response.json();
+        const optionsDiv = document.getElementById('options');
+
+        options.forEach(option => {
+            const button = document.createElement('button');
+            button.textContent = option.text;
+            button.className = 'option';
+            button.onclick = () => vote(option.code);
+            optionsDiv.appendChild(button);
+        });
+    }
+
+    async function loadStats() {
+        const response = await fetch('/stat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        const stats = await response.json();
+        const statsDiv = document.getElementById('stats');
+        statsDiv.innerHTML = ''; // Clear previous stats
+        stats.forEach(stat => {
+            const statElem = document.createElement('div');
+            statElem.textContent = `${stat.code}: ${stat.votes} votes`;
+            statsDiv.appendChild(statElem);
+        });
+    }
+
+    async function vote(code) {
+        await fetch('/vote', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ code })
+        });
+        await loadStats(); // Reload stats after voting
+    }
+
+    // Initial load
+    loadOptions();
+    loadStats();
+</script>
+</body>
+</html>
