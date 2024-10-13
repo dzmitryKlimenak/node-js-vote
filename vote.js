@@ -49,6 +49,50 @@ app.get('/', (req, res) => {
     res.sendFile(__dirname + '/public/index.html');
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server is running on http://0.0.0.0:${PORT}`);
+// GET service to load vote statistics
+app.get('/download/:format', (req, res) => {
+    const format = req.params.format;
+    const stats = Object.keys(votes).map(code => ({
+        code,
+        votes: votes[code]
+    }));
+
+    sendFormattedResponse(res, format, stats);
 });
+
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server is running on port: ${PORT}`);
+});
+
+// Reusable function to handle response formatting
+function sendFormattedResponse(res, format, stats) {
+    switch (format) {
+        case 'json':
+            res.setHeader('Content-disposition', 'attachment; filename=results.json');
+            res.setHeader('Content-Type', 'application/json');
+            res.send(JSON.stringify(stats, null, 2));
+            break;
+        case 'xml':
+            let xml = '<?xml version="1.0" encoding="UTF-8"?><stats>';
+            stats.forEach(stat => {
+                xml += `<option><code>${stat.code}</code><votes>${stat.votes}</votes></option>`;
+            });
+            xml += '</stats>';
+            res.setHeader('Content-disposition', 'attachment; filename=results.xml');
+            res.setHeader('Content-Type', 'application/xml');
+            res.send(xml);
+            break;
+        case 'html':
+            let html = '<ul>';
+            stats.forEach(stat => {
+                html += `<li>${stat.code}: ${stat.votes} votes</li>`;
+            });
+            html += '</ul>';
+            res.setHeader('Content-disposition', 'attachment; filename=results.html');
+            res.setHeader('Content-Type', 'text/html');
+            res.send(html);
+            break;
+        default:
+            res.status(400).send('Invalid format');
+    }
+}
